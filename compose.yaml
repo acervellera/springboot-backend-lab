@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: backendmid-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-backend_practice}
+      POSTGRES_USER: ${POSTGRES_USER:-backend_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-backend_user} -d ${POSTGRES_DB:-backend_practice}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    container_name: backendmid-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-backend_practice}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-backend_user}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-3600000}
+      APP_ADMIN_USERNAME: ${ADMIN_USERNAME:-}
+      APP_ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+
+volumes:
+  postgres_data:
