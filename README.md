@@ -4,11 +4,12 @@
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1.1-6DB33F?logo=springboot&logoColor=white)](#)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](#)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](#)
+[![Flyway](https://img.shields.io/badge/DB%20Migrations-Flyway-CC0200)](#)
 [![Security](https://img.shields.io/badge/Security-JWT-000000?logo=jsonwebtokens&logoColor=white)](#)
 
 > Italian version: [README.it.md](README.it.md)
 
-A portfolio-oriented REST backend built with **Java 17** and **Spring Boot**. The project brings together REST API design, persistence, validation, JWT security, testing, observability, OpenAPI documentation and Docker-based local infrastructure.
+A portfolio-oriented REST backend built with **Java 17** and **Spring Boot**. The project brings together REST API design, relational persistence, validation, JWT security, testing, observability, OpenAPI documentation, versioned database migrations and Docker-based infrastructure.
 
 ## Tech Stack
 
@@ -20,6 +21,7 @@ A portfolio-oriented REST backend built with **Java 17** and **Spring Boot**. Th
 - JWT with JJWT
 - BCrypt password hashing
 - PostgreSQL 16
+- Flyway
 - Jakarta Bean Validation
 - JUnit 5 / Mockito / Spring Boot Test
 - Spring Boot Actuator
@@ -82,6 +84,8 @@ Authorization: Bearer <token>
 - role-based authorization (`USER`, `ADMIN`)
 - JWT authentication
 - BCrypt password hashing
+- versioned schema migrations with Flyway
+- separate Spring `dev` and `prod` profiles
 - Actuator health/info endpoints
 - Swagger UI / OpenAPI
 - Docker multi-stage build
@@ -124,7 +128,7 @@ USER / ADMIN role from the database
 SecurityFilterChain / @PreAuthorize
 ```
 
-A token generated for a `USER` therefore identifies that username; when Spring reloads the account from the database, it obtains the `USER` role and administrative requests are denied. A token generated for the `ADMIN` account resolves to the admin username and the `ADMIN` role is loaded from the database, so administrative endpoints can be executed.
+A token generated for a `USER` identifies that username; when Spring reloads the account from the database, it obtains the `USER` role and administrative requests are denied. A token generated for the `ADMIN` account resolves to the admin username and the `ADMIN` role is loaded from the database, so administrative endpoints can be executed.
 
 The server, however, **does not know which physical person is holding the token**. A Bearer JWT is a credential: anyone who possesses a valid `ADMIN` token is authenticated as the admin user represented by that token. A normal user cannot turn their own token into an admin token, but if they actually obtained a valid admin token they would inherit those privileges until the token expires or becomes invalid. Tokens must therefore be treated as sensitive credentials.
 
@@ -145,6 +149,64 @@ Repository / database
 ```
 
 No JWT secret or database password is committed to the repository. Runtime configuration is provided through environment variables.
+
+## Database migrations with Flyway
+
+Hibernate no longer changes the database schema automatically. The project uses:
+
+```properties
+spring.jpa.hibernate.ddl-auto=validate
+```
+
+Hibernate therefore validates entity/schema compatibility, while Flyway owns schema evolution.
+
+Migration files live under:
+
+```text
+src/main/resources/db/migration/
+```
+
+Example sequence:
+
+```text
+V1__init.sql
+V2__add_index_clienti_email.sql
+V3__...
+```
+
+On a fresh database, Flyway applies all required migrations in order. On an existing managed database, it reads `flyway_schema_history` and runs only the missing versions.
+
+Flyway was introduced after the initial schema already existed, so the common configuration includes a baseline at version 1. New schema changes should be added as new migrations rather than editing already-applied migration files.
+
+Real production data is not recreated by schema migrations. It is preserved through the database and its backup/restore or replication strategy. Migrations may still include reference data or data transformations required by a schema change.
+
+## Spring profiles
+
+The default profile is `dev`:
+
+```properties
+spring.profiles.active=${SPRING_PROFILES_ACTIVE:dev}
+```
+
+Configuration is split across:
+
+```text
+application.properties
+application-dev.properties
+application-prod.properties
+```
+
+In `dev`, the admin seeder is available through `@Profile("dev")`. If the configured account does not exist, it is created using `ADMIN_USERNAME` and `ADMIN_PASSWORD`.
+
+In `prod`, the development seeder is not loaded, SQL logging is disabled and Hibernate remains in `validate` mode.
+
+Docker Compose allows profile selection through an environment variable:
+
+```bash
+SPRING_PROFILES_ACTIVE=prod docker compose up --build -d
+```
+
+If the variable is omitted, Compose defaults to `dev`.
 
 ## Run with Docker Compose
 
@@ -185,7 +247,7 @@ ADMIN_USERNAME=admin
 ADMIN_PASSWORD=choose-an-admin-password
 ```
 
-If these two values are empty, no admin account is automatically created.
+If these two values are empty, no admin account is automatically created in `dev`.
 
 ### 3. Start
 
@@ -199,7 +261,7 @@ The application is available at:
 http://localhost:8080
 ```
 
-PostgreSQL is kept inside the Compose network and is not published on a host port by default.
+PostgreSQL stays inside the Compose network and is not published on a host port by default. The application service also waits for PostgreSQL's health check before starting.
 
 ### 4. Health check
 
@@ -321,6 +383,10 @@ src/
 │   │   ├── repository/
 │   │   └── service/
 │   └── resources/
+│       ├── db/migration/
+│       ├── application.properties
+│       ├── application-dev.properties
+│       └── application-prod.properties
 └── test/
     └── java/com/example/backendmid/
 
@@ -348,7 +414,7 @@ Provide the required database and JWT environment variables, then run:
 
 ## Purpose
 
-This project was created to consolidate practical backend engineering topics commonly encountered in Java/Spring development: layered architecture, REST design, relational persistence, authentication, authorization, validation, error handling, testing, observability, API documentation and containerization.
+This project was created to consolidate practical backend engineering topics commonly encountered in Java/Spring development: layered architecture, REST design, relational persistence, authentication, authorization, validation, error handling, testing, database migrations, application profiles, observability, API documentation and containerization.
 
 ## Author
 
@@ -357,4 +423,4 @@ GitHub: [@acervellera](https://github.com/acervellera)
 
 ---
 
-Possible next steps include CI/CD, Flyway/Liquibase migrations, a dedicated production profile and broader integration-test coverage.
+Possible next steps include CI/CD with GitHub Actions, a controlled production admin bootstrap, broader integration-test coverage and additional production-configuration hardening.
