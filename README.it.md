@@ -4,11 +4,12 @@
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1.1-6DB33F?logo=springboot&logoColor=white)](#)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](#)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](#)
+[![Flyway](https://img.shields.io/badge/DB%20Migrations-Flyway-CC0200)](#)
 [![Security](https://img.shields.io/badge/Security-JWT-000000?logo=jsonwebtokens&logoColor=white)](#)
 
 > English version: [README.md](README.md)
 
-Backend REST realizzato con **Java 17** e **Spring Boot**, pensato come progetto portfolio e laboratorio pratico di backend engineering. Il progetto raccoglie in un'unica applicazione REST, persistenza relazionale, validazione, sicurezza JWT, testing, osservabilità, documentazione OpenAPI e containerizzazione con Docker.
+Backend REST realizzato con **Java 17** e **Spring Boot**, pensato come progetto portfolio e laboratorio pratico di backend engineering. Il progetto raccoglie in un'unica applicazione REST, persistenza relazionale, validazione, sicurezza JWT, testing, osservabilità, documentazione OpenAPI, migrazioni database versionate e containerizzazione con Docker.
 
 ## Stack tecnologico
 
@@ -20,6 +21,7 @@ Backend REST realizzato con **Java 17** e **Spring Boot**, pensato come progetto
 - JWT con JJWT
 - BCrypt per l'hashing delle password
 - PostgreSQL 16
+- Flyway
 - Jakarta Bean Validation
 - JUnit 5 / Mockito / Spring Boot Test
 - Spring Boot Actuator
@@ -82,6 +84,8 @@ Authorization: Bearer <token>
 - autorizzazione per ruoli (`USER`, `ADMIN`)
 - autenticazione JWT
 - password cifrate con BCrypt
+- migrazioni schema versionate con Flyway
+- profili Spring separati `dev` e `prod`
 - endpoint Actuator per health e info
 - Swagger UI / OpenAPI
 - build Docker multi-stage
@@ -146,6 +150,64 @@ Repository / database
 
 Secret JWT e password del database non vengono salvate nel repository: la configurazione runtime passa tramite variabili d'ambiente.
 
+## Migrazioni database con Flyway
+
+Lo schema non viene più modificato automaticamente da Hibernate. La configurazione usa:
+
+```properties
+spring.jpa.hibernate.ddl-auto=validate
+```
+
+Hibernate verifica quindi la compatibilità tra entity e schema, mentre l'evoluzione del database è affidata a Flyway.
+
+Le migration sono in:
+
+```text
+src/main/resources/db/migration/
+```
+
+Esempio di sequenza:
+
+```text
+V1__init.sql
+V2__add_index_clienti_email.sql
+V3__...
+```
+
+Su un database nuovo Flyway applica in ordine tutte le migration necessarie. Su un database già gestito consulta `flyway_schema_history` ed esegue soltanto quelle mancanti.
+
+Il progetto è stato introdotto a Flyway partendo da uno schema preesistente; per questo la configurazione comune include una baseline alla versione 1. Le nuove modifiche strutturali devono essere aggiunte tramite nuove migration, senza modificare file già applicati.
+
+I dati applicativi reali non vengono ricreati dalle migration: in produzione vengono preservati tramite il database e le relative strategie di backup/restore o replica. Le migration possono invece contenere reference data o trasformazioni dati necessarie all'evoluzione dello schema.
+
+## Profili Spring
+
+Il profilo di default è `dev`:
+
+```properties
+spring.profiles.active=${SPRING_PROFILES_ACTIVE:dev}
+```
+
+La configurazione è separata tra:
+
+```text
+application.properties
+application-dev.properties
+application-prod.properties
+```
+
+In `dev` è disponibile il seeder admin, protetto da `@Profile("dev")`. Se l'account configurato non esiste, viene creato usando `ADMIN_USERNAME` e `ADMIN_PASSWORD`.
+
+In `prod` il seeder development non viene caricato, SQL logging è disabilitato e Hibernate resta in modalità `validate`.
+
+Con Docker Compose il profilo può essere selezionato tramite variabile d'ambiente:
+
+```bash
+SPRING_PROFILES_ACTIVE=prod docker compose up --build -d
+```
+
+Se la variabile non viene specificata, Compose usa `dev`.
+
 ## Avvio con Docker Compose
 
 ### Requisiti
@@ -190,7 +252,7 @@ ADMIN_USERNAME=admin
 ADMIN_PASSWORD=scegli-una-password-admin
 ```
 
-Se questi due valori restano vuoti, nessun account admin viene creato automaticamente.
+Se questi due valori restano vuoti, nessun account admin viene creato automaticamente in `dev`.
 
 ### 3. Avviare l'applicazione
 
@@ -204,7 +266,7 @@ L'applicazione sarà disponibile su:
 http://localhost:8080
 ```
 
-PostgreSQL resta nella rete interna di Docker Compose e, di default, non espone una porta verso l'host.
+PostgreSQL resta nella rete interna di Docker Compose e, di default, non espone una porta verso l'host. Il servizio applicativo attende inoltre che l'healthcheck PostgreSQL sia positivo prima di partire.
 
 ### 4. Verificare lo stato dell'applicazione
 
@@ -328,6 +390,10 @@ src/
 │   │   ├── repository/
 │   │   └── service/
 │   └── resources/
+│       ├── db/migration/
+│       ├── application.properties
+│       ├── application-dev.properties
+│       └── application-prod.properties
 └── test/
     └── java/com/example/backendmid/
 
@@ -355,7 +421,7 @@ Configurare le variabili d'ambiente per database e JWT, quindi eseguire:
 
 ## Obiettivo del progetto
 
-Il progetto nasce per consolidare in modo pratico concetti tipici dello sviluppo backend Java/Spring: architettura a livelli, REST API, persistenza relazionale, autenticazione, autorizzazione, validazione, gestione errori, testing, osservabilità, documentazione API e containerizzazione.
+Il progetto nasce per consolidare in modo pratico concetti tipici dello sviluppo backend Java/Spring: architettura a livelli, REST API, persistenza relazionale, autenticazione, autorizzazione, validazione, gestione errori, testing, migrazioni database, profili applicativi, osservabilità, documentazione API e containerizzazione.
 
 ## Autore
 
@@ -364,4 +430,4 @@ GitHub: [@acervellera](https://github.com/acervellera)
 
 ---
 
-Possibili evoluzioni: CI/CD, migrazioni database con Flyway/Liquibase, profilo production dedicato e maggiore copertura con test di integrazione.
+Possibili evoluzioni: CI/CD con GitHub Actions, bootstrap amministrativo production controllato, maggiore copertura con test di integrazione e ulteriori hardening di configurazione production.
