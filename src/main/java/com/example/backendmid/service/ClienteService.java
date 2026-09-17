@@ -108,4 +108,24 @@ public class ClienteService {
                 ordini);
 
     }
+
+    @Transactional(readOnly = true)
+    public List<ClienteResponse> trovaTuttiConOrdini() {
+
+        List<Cliente> clienti = clienteRepository.findAllConOrdiniEntityGraph();
+
+        return clienti.stream()
+                .map(cliente -> {
+                    System.out.println(
+                            cliente.getNome()
+                                    + " -> ordini: "
+                                    + cliente.getOrdini().size());
+
+                    return new ClienteResponse(
+                            cliente.getId(),
+                            cliente.getNome(),
+                            cliente.getEmail());
+                })
+                .toList();
+    }
 }

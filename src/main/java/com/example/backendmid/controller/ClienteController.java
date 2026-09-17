@@ -93,4 +93,10 @@ public class ClienteController {
                 clienteService.trovaClienteConOrdini(id));
     }
 
+    @GetMapping("/clienti/con-ordini")
+    public ResponseEntity<List<ClienteResponse>> trovaTuttiConOrdini() {
+        return ResponseEntity.ok(
+                clienteService.trovaTuttiConOrdini());
+    }
+
 }

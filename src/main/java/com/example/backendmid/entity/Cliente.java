@@ -11,6 +11,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -30,6 +31,9 @@ public class Cliente {
     @NotBlank
     @Email
     private String email;
+
+    @Version
+    private Long version;
 
     @OneToMany(mappedBy = "cliente", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Ordine> ordini = new ArrayList<>();
@@ -73,6 +77,10 @@ public class Cliente {
 
     public void setOrdini(List<Ordine> ordini) {
         this.ordini = ordini;
+    }
+
+    public Long getVersion() {
+        return version;
     }
 
 }
