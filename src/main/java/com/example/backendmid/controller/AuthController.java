@@ -19,22 +19,26 @@ import com.example.backendmid.service.UtenteService;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/v1/auth")
 public class AuthController {
 
     private final UtenteService utenteService;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
 
-    public AuthController(UtenteService utenteService, AuthenticationManager authenticationManager,
+    public AuthController(
+            UtenteService utenteService,
+            AuthenticationManager authenticationManager,
             JwtService jwtService) {
+
         this.utenteService = utenteService;
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
     }
 
     @PostMapping("/registrazione")
-    public ResponseEntity<Void> registra(@Valid @RequestBody RegistrazioneUtenteRequest request) {
+    public ResponseEntity<Void> registra(
+            @Valid @RequestBody RegistrazioneUtenteRequest request) {
 
         utenteService.registra(request);
 
@@ -44,7 +48,8 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<LoginResponse> login(
+            @Valid @RequestBody LoginRequest loginRequest) {
 
         Authentication authenticationReq = UsernamePasswordAuthenticationToken.unauthenticated(
                 loginRequest.username(),
@@ -54,7 +59,6 @@ public class AuthController {
 
         String token = jwtService.generaToken(loginRequest.username());
 
-        return ResponseEntity.ok(
-                new LoginResponse(token));
+        return ResponseEntity.ok(new LoginResponse(token));
     }
 }
