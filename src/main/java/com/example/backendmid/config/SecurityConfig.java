@@ -48,8 +48,8 @@ public class SecurityConfig {
 
                                 .authorizeHttpRequests(auth -> auth
                                                 .requestMatchers(
-                                                                "/auth/registrazione",
-                                                                "/auth/login",
+                                                                "/api/v1/auth/registrazione",
+                                                                "/api/v1/auth/login",
                                                                 "/actuator/health",
                                                                 "/actuator/info",
                                                                 "/swagger-ui/**",
@@ -59,7 +59,7 @@ public class SecurityConfig {
 
                                                 .requestMatchers(
                                                                 HttpMethod.DELETE,
-                                                                "/clienti/**")
+                                                                "/api/v1/clienti/**")
                                                 .hasRole("ADMIN")
 
                                                 .anyRequest().authenticated())
@@ -108,5 +108,4 @@ public class SecurityConfig {
 
                 return source;
         }
-
 }
