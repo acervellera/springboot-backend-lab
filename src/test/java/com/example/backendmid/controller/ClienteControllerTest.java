@@ -3,6 +3,7 @@ package com.example.backendmid.controller;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -12,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -21,6 +23,7 @@ import com.example.backendmid.exception.ClienteNonTrovatoException;
 import com.example.backendmid.service.ClienteService;
 
 @WebMvcTest(ClienteController.class)
+@WithMockUser(username = "test-user", roles = "USER")
 class ClienteControllerTest {
 
     @Autowired
@@ -40,7 +43,7 @@ class ClienteControllerTest {
         when(clienteService.trovaPerId(1L))
                 .thenReturn(response);
 
-        mockMvc.perform(get("/clienti/1"))
+        mockMvc.perform(get("/api/v1/clienti/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.nome").value("Mario"))
@@ -53,7 +56,7 @@ class ClienteControllerTest {
         when(clienteService.trovaPerId(999L))
                 .thenThrow(new ClienteNonTrovatoException(999L));
 
-        mockMvc.perform(get("/clienti/999"))
+        mockMvc.perform(get("/api/v1/clienti/999"))
                 .andExpect(status().isNotFound())
                 .andExpect(content().string(
                         "Cliente non trovato con id: 999"));
@@ -70,7 +73,8 @@ class ClienteControllerTest {
         when(clienteService.crea(any(ClienteRequest.class)))
                 .thenReturn(response);
 
-        mockMvc.perform(post("/clienti/salvaCliente")
+        mockMvc.perform(post("/api/v1/clienti")
+                .with(csrf())
                 .contentType("application/json")
                 .content("""
                         {
@@ -87,7 +91,8 @@ class ClienteControllerTest {
     @Test
     void creaCliente_datiNonValidi_restituisce400() throws Exception {
 
-        mockMvc.perform(post("/clienti/salvaCliente")
+        mockMvc.perform(post("/api/v1/clienti")
+                .with(csrf())
                 .contentType("application/json")
                 .content("""
                         {
