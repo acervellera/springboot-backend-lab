@@ -1,11 +1,13 @@
 package com.example.backendmid.controller;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -13,12 +15,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.example.backendmid.dto.ClienteRequest;
 import com.example.backendmid.dto.ClienteResponse;
+import com.example.backendmid.entity.Cliente;
 import com.example.backendmid.exception.ClienteNonTrovatoException;
 import com.example.backendmid.service.ClienteService;
 import com.example.backendmid.service.CustomUserDetailsService;
@@ -28,88 +32,125 @@ import com.example.backendmid.service.JwtService;
 @WithMockUser(username = "test-user", roles = "USER")
 class ClienteControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+        @Autowired
+        private MockMvc mockMvc;
 
-    @MockitoBean
-    private ClienteService clienteService;
+        @MockitoBean
+        private ClienteService clienteService;
 
-    @MockitoBean
-    private JwtService jwtService;
+        @MockitoBean
+        private JwtService jwtService;
 
-    @MockitoBean
-    private CustomUserDetailsService customUserDetailsService;
+        @MockitoBean
+        private CustomUserDetailsService customUserDetailsService;
 
-    @Test
-    void trovaCliente_restituisce200() throws Exception {
+        @Test
+        void trovaCliente_restituisce200() throws Exception {
 
-        ClienteResponse response = new ClienteResponse(
-                1L,
-                "Mario",
-                "mario@email.it");
+                ClienteResponse response = new ClienteResponse(
+                                1L,
+                                "Mario",
+                                "mario@email.it",
+                                0L);
 
-        when(clienteService.trovaPerId(1L))
-                .thenReturn(response);
+                when(clienteService.trovaPerId(1L))
+                                .thenReturn(response);
 
-        mockMvc.perform(get("/api/v1/clienti/1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.nome").value("Mario"))
-                .andExpect(jsonPath("$.email").value("mario@email.it"));
-    }
+                mockMvc.perform(
+                                get("/api/v1/clienti/1"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.id").value(1))
+                                .andExpect(jsonPath("$.nome").value("Mario"))
+                                .andExpect(jsonPath("$.email").value("mario@email.it"))
+                                .andExpect(jsonPath("$.version").value(0));
+        }
 
-    @Test
-    void trovaCliente_nonEsiste_restituisce404() throws Exception {
+        @Test
+        void trovaCliente_nonEsiste_restituisce404() throws Exception {
 
-        when(clienteService.trovaPerId(999L))
-                .thenThrow(new ClienteNonTrovatoException(999L));
+                when(clienteService.trovaPerId(999L))
+                                .thenThrow(
+                                                new ClienteNonTrovatoException(999L));
 
-        mockMvc.perform(get("/api/v1/clienti/999"))
-                .andExpect(status().isNotFound())
-                .andExpect(content().string(
-                        "Cliente non trovato con id: 999"));
-    }
+                mockMvc.perform(
+                                get("/api/v1/clienti/999"))
+                                .andExpect(status().isNotFound())
+                                .andExpect(content().string(
+                                                "Cliente non trovato con id: 999"));
+        }
 
-    @Test
-    void creaCliente_restituisce201() throws Exception {
+        @Test
+        void creaCliente_restituisce201() throws Exception {
 
-        ClienteResponse response = new ClienteResponse(
-                1L,
-                "Mario",
-                "mario@email.it");
+                ClienteResponse response = new ClienteResponse(
+                                1L,
+                                "Mario",
+                                "mario@email.it",
+                                0L);
 
-        when(clienteService.crea(any(ClienteRequest.class)))
-                .thenReturn(response);
+                when(clienteService.crea(
+                                any(ClienteRequest.class)))
+                                .thenReturn(response);
 
-        mockMvc.perform(post("/api/v1/clienti")
-                .with(csrf())
-                .contentType("application/json")
-                .content("""
-                        {
-                          "nome": "Mario",
-                          "email": "mario@email.it"
-                        }
-                        """))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.nome").value("Mario"))
-                .andExpect(jsonPath("$.email").value("mario@email.it"));
-    }
+                mockMvc.perform(
+                                post("/api/v1/clienti")
+                                                .with(csrf())
+                                                .contentType("application/json")
+                                                .content("""
+                                                                {
+                                                                  "nome": "Mario",
+                                                                  "email": "mario@email.it"
+                                                                }
+                                                                """))
+                                .andExpect(status().isCreated())
+                                .andExpect(jsonPath("$.id").value(1))
+                                .andExpect(jsonPath("$.nome").value("Mario"))
+                                .andExpect(jsonPath("$.email").value("mario@email.it"))
+                                .andExpect(jsonPath("$.version").value(0));
+        }
 
-    @Test
-    void creaCliente_datiNonValidi_restituisce400() throws Exception {
+        @Test
+        void creaCliente_datiNonValidi_restituisce400() throws Exception {
 
-        mockMvc.perform(post("/api/v1/clienti")
-                .with(csrf())
-                .contentType("application/json")
-                .content("""
-                        {
-                          "nome": "",
-                          "email": ""
-                        }
-                        """))
-                .andExpect(status().isBadRequest());
+                mockMvc.perform(
+                                post("/api/v1/clienti")
+                                                .with(csrf())
+                                                .contentType("application/json")
+                                                .content("""
+                                                                {
+                                                                  "nome": "",
+                                                                  "email": ""
+                                                                }
+                                                                """))
+                                .andExpect(status().isBadRequest());
 
-        verifyNoInteractions(clienteService);
-    }
+                verifyNoInteractions(clienteService);
+        }
+
+        @Test
+        void aggiornaCliente_conflittoOptimisticLocking_restituisce409()
+                        throws Exception {
+
+                when(clienteService.modificaCliente(
+                                eq(1L),
+                                any(ClienteRequest.class)))
+                                .thenThrow(
+                                                new ObjectOptimisticLockingFailureException(
+                                                                Cliente.class,
+                                                                1L));
+
+                mockMvc.perform(
+                                put("/api/v1/clienti/1")
+                                                .with(csrf())
+                                                .contentType("application/json")
+                                                .content("""
+                                                                {
+                                                                  "nome": "Mario aggiornato",
+                                                                  "email": "mario@email.it"
+                                                                }
+                                                                """))
+                                .andExpect(status().isConflict())
+                                .andExpect(content().string(
+                                                "Il cliente è stato modificato da un'altra transazione. Ricarica i dati e riprova."));
+        }
 }
