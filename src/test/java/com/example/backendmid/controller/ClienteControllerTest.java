@@ -21,6 +21,8 @@ import com.example.backendmid.dto.ClienteRequest;
 import com.example.backendmid.dto.ClienteResponse;
 import com.example.backendmid.exception.ClienteNonTrovatoException;
 import com.example.backendmid.service.ClienteService;
+import com.example.backendmid.service.CustomUserDetailsService;
+import com.example.backendmid.service.JwtService;
 
 @WebMvcTest(ClienteController.class)
 @WithMockUser(username = "test-user", roles = "USER")
@@ -31,6 +33,12 @@ class ClienteControllerTest {
 
     @MockitoBean
     private ClienteService clienteService;
+
+    @MockitoBean
+    private JwtService jwtService;
+
+    @MockitoBean
+    private CustomUserDetailsService customUserDetailsService;
 
     @Test
     void trovaCliente_restituisce200() throws Exception {
