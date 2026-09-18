@@ -1,21 +1,13 @@
 package com.example.backendmid.integrationTest;
 
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+
+import com.example.backendmid.TestcontainersConfiguration;
 
 @SpringBootTest
 @ActiveProfiles("test")
-@Testcontainers
+@Import(TestcontainersConfiguration.class)
 public abstract class AbstractIntegrationTest {
-
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:16")
-            .withDatabaseName("backend_test")
-            .withUsername("test")
-            .withPassword("test");
 }
