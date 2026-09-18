@@ -1,13 +1,12 @@
 package com.example.backendmid;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
-class BackendmidApplicationTests {
+import com.example.backendmid.integrationTest.AbstractIntegrationTest;
 
-	@Test
-	void contextLoads() {
-	}
+class BackendmidApplicationTests extends AbstractIntegrationTest {
 
+    @Test
+    void contextLoads() {
+    }
 }

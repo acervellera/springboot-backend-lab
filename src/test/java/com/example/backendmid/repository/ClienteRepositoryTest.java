@@ -8,10 +8,15 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
 
+import com.example.backendmid.TestcontainersConfiguration;
 import com.example.backendmid.entity.Cliente;
 
 @DataJpaTest
+@ActiveProfiles("test")
+@Import(TestcontainersConfiguration.class)
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 class ClienteRepositoryTest {
 
@@ -22,12 +27,13 @@ class ClienteRepositoryTest {
     void cercaPerNome_restituisceCliente() {
 
         Cliente cliente = new Cliente("Mario", "mario@email.it");
-
         clienteRepository.save(cliente);
 
-        List<Cliente> risultati = clienteRepository
-                .findByNomeContainingIgnoreCase("mar");
+        List<Cliente> risultati =
+                clienteRepository.findByNomeContainingIgnoreCase("mar");
 
-        assertThat(risultati).isNotEmpty();
+        assertThat(risultati)
+                .extracting(Cliente::getEmail)
+                .contains("mario@email.it");
     }
 }
